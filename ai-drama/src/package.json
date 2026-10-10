@@ -1,0 +1,37 @@
+{
+  "name": "aidrama-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.ts,.tsx --fix"
+  },
+  "dependencies": {
+    "vue": "^3.5.12",
+    "vue-router": "^4.4.5",
+    "pinia": "^2.2.4",
+    "@inertiajs/vue3": "^2.0.4",
+    "@inertiajs/inertia-vue3": "^0.8.0",
+    "ant-design-vue": "^4.2.6",
+    "@ant-design/icons-vue": "^7.0.1",
+    "axios": "^1.7.7",
+    "dayjs": "^1.11.13",
+    "@logicflow/core": "^2.0.0",
+    "@logicflow/extension": "^2.0.0",
+    "@antv/x6": "^2.18.1",
+    "@antv/x6-vue-shape": "^2.1.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "vite": "^6.0.1",
+    "vite-plugin-vue-devtools": "^7.6.7",
+    "laravel-vite-plugin": "^1.2.0",
+    "typescript": "^5.6.3",
+    "vue-tsc": "^2.1.10",
+    "sass": "^1.81.0",
+    "@types/node": "^22.9.0"
+  }
+}

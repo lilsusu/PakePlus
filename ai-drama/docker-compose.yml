@@ -1,0 +1,160 @@
+# AI 短剧一站式服务平台 — Docker Compose 编排
+# 里程碑 M1：基础设施与认证
+version: '3.8'
+
+services:
+  # ============================================================
+  # Nginx 反向代理
+  # ============================================================
+  nginx:
+    image: nginx:alpine
+    container_name: aidrama-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./src:/var/www/html
+    depends_on:
+      - app
+      - reverb
+    networks:
+      - aidrama
+
+  # ============================================================
+  # PHP-FPM 主应用
+  # ============================================================
+  app:
+    build:
+      context: ./docker/php
+      args:
+        PHP_VERSION: '8.3'
+    container_name: aidrama-app
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DB_HOST=mysql
+      - DB_DATABASE=ai_drama
+      - DB_USERNAME=root
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+    networks:
+      - aidrama
+
+  # ============================================================
+  # Laravel Horizon 队列消费
+  # ============================================================
+  horizon:
+    build:
+      context: ./docker/php
+      args:
+        PHP_VERSION: '8.3'
+    container_name: aidrama-horizon
+    working_dir: /var/www/html
+    command: php artisan horizon
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    depends_on:
+      - app
+      - redis
+    environment:
+      - DB_HOST=mysql
+      - DB_DATABASE=ai_drama
+      - DB_USERNAME=root
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+    networks:
+      - aidrama
+
+  # ============================================================
+  # Laravel Reverb WebSocket 服务
+  # ============================================================
+  reverb:
+    build:
+      context: ./docker/php
+      args:
+        PHP_VERSION: '8.3'
+    container_name: aidrama-reverb
+    working_dir: /var/www/html
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - app
+      - redis
+    environment:
+      - REDIS_HOST=redis
+    networks:
+      - aidrama
+
+  # ============================================================
+  # MySQL 8.0
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: aidrama-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ai_drama
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      TZ: Asia/Shanghai
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-secret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aidrama
+
+  # ============================================================
+  # Redis 7
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: aidrama-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - aidrama
+
+  # ============================================================
+  # Node 前端构建（开发时使用）
+  # ============================================================
+  node:
+    image: node:20-alpine
+    container_name: aidrama-node
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "5173:5173"
+    networks:
+      - aidrama
+
+networks:
+  aidrama:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
