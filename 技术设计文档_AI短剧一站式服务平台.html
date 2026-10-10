@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 短剧一站式服务平台 — 技术设计文档</title>
+<style>
+:root{
+  --bg:#0f1117; --bg2:#161821; --bg3:#1e2030; --bg4:#262a3d;
+  --txt:#e4e4ef; --txt2:#9a9ab0; --txt3:#6b6b85;
+  --pri:#4f7cff; --pri2:#3b5dd9; --acc:#22d3ee; --acc2:#0ea5e9;
+  --grn:#34d399; --ylw:#fbbf24; --red:#f87171; --pur:#a78bfa; --pnk:#f472b6;
+  --bd:#2a2d3f; --bd2:#363a52;
+  --rad:10px; --rad2:6px;
+  --mono:'SF Mono','Cascadia Code','JetBrains Mono',Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);font-size:14px;line-height:1.7;letter-spacing:.01em}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.layout{display:flex;min-height:100vh}
+.sidebar{width:280px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);position:fixed;top:0;bottom:0;left:0;overflow-y:auto;z-index:100;padding:0 0 40px}
+.sidebar-inner{padding:20px 16px}
+.logo{font-size:16px;font-weight:700;color:var(--txt);padding:16px 12px;border-bottom:1px solid var(--bd);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.logo .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--grn),var(--acc));flex-shrink:0}
+.nav-group{margin-bottom:18px}
+.nav-group-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);padding:4px 12px;margin-bottom:4px;font-weight:600}
+.nav-item{display:block;padding:6px 12px;font-size:13px;color:var(--txt2);border-radius:var(--rad2);border-left:2px solid transparent;margin-bottom:1px;transition:all .15s}
+.nav-item:hover{background:var(--bg3);color:var(--txt);text-decoration:none}
+.main{flex:1;margin-left:280px;padding:0}
+.content{max-width:1000px;margin:0 auto;padding:40px 48px 120px}
+
+h1{font-size:32px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px;background:linear-gradient(135deg,#e4e4ef,#9a9ab0);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h2{font-size:24px;font-weight:700;margin:48px 0 20px;padding-bottom:10px;border-bottom:2px solid var(--bd2);letter-spacing:-.01em}
+h2 .hn{color:var(--grn);margin-right:8px}
+h3{font-size:18px;font-weight:600;margin:32px 0 14px;color:var(--txt)}
+h3 .hn{color:var(--acc);margin-right:8px;font-weight:400}
+h4{font-size:15px;font-weight:600;margin:24px 0 10px;color:var(--txt2)}
+p{margin-bottom:12px;color:var(--txt)}
+ul,ol{margin:0 0 16px 20px}
+li{margin-bottom:6px}
+li::marker{color:var(--txt3)}
+strong{color:var(--txt);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--acc)}
+pre{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:16px;overflow-x:auto;margin:12px 0 16px;font-size:12px;line-height:1.5}
+pre code{background:none;padding:0;color:var(--txt)}
+
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:20px;margin:16px 0}
+.info-card{background:linear-gradient(135deg,rgba(79,124,255,.08),rgba(34,211,238,.04));border:1px solid rgba(79,124,255,.2)}
+.warn-card{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2)}
+.grn-card{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2)}
+
+table{width:100%;border-collapse:collapse;margin:12px 0 20px;font-size:13px}
+th{background:var(--bg3);text-align:left;padding:10px 14px;font-weight:600;color:var(--txt2);border-bottom:2px solid var(--bd2);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+td{padding:10px 14px;border-bottom:1px solid var(--bd);vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.03em}
+.badge-p0{background:rgba(79,124,255,.15);color:#7fa0ff;border:1px solid rgba(79,124,255,.3)}
+.badge-p1{background:rgba(34,211,238,.12);color:#67e8f9;border:1px solid rgba(34,211,238,.25)}
+.badge-p2{background:rgba(167,139,250,.12);color:#c4b5fd;border:1px solid rgba(167,139,250,.25)}
+.badge-get{background:rgba(52,211,153,.12);color:#6ee7b7;border:1px solid rgba(52,211,153,.25)}
+.badge-post{background:rgba(79,124,255,.12);color:#7fa0ff;border:1px solid rgba(79,124,255,.25)}
+.badge-put{background:rgba(251,191,36,.12);color:#fcd34d;border:1px solid rgba(251,191,36,.25)}
+.badge-del{background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.25)}
+
+.hero{background:linear-gradient(135deg,#1a1c28,#1e2030);border:1px solid var(--bd);border-radius:16px;padding:40px;margin-bottom:40px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(52,211,153,.08),transparent 70%);pointer-events:none}
+.hero-tag{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,.1);color:var(--grn);border:1px solid rgba(52,211,153,.2);margin-right:6px}
+.hero-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.hero-meta-item{font-size:12px;color:var(--txt3);display:flex;align-items:center;gap:6px}
+.hero-meta-item span{color:var(--txt2)}
+
+/* Architecture diagram */
+.arch-diagram{margin:20px 0;padding:24px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);overflow-x:auto}
+.arch-layer{margin-bottom:16px}
+.arch-layer-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);font-weight:600;margin-bottom:8px;text-align:center}
+.arch-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.arch-box{background:var(--bg3);border:1px solid var(--bd2);border-radius:8px;padding:10px 16px;font-size:12px;text-align:center;min-width:100px;color:var(--txt)}
+.arch-box.pri{border-color:rgba(79,124,255,.4);background:rgba(79,124,255,.08)}
+.arch-box.acc{border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.06)}
+.arch-box.grn{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.06)}
+.arch-box.ylw{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.06)}
+.arch-box.pur{border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.06)}
+.arch-arrow{text-align:center;color:var(--txt3);font-size:20px;margin:4px 0}
+
+/* ER tables */
+.er-table{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);margin:16px 0;overflow:hidden}
+.er-table-header{background:var(--bg3);padding:10px 16px;font-weight:600;font-size:13px;color:var(--txt);border-bottom:1px solid var(--bd2);display:flex;align-items:center;gap:8px}
+.er-table-header .tbl-icon{color:var(--acc);font-size:14px}
+.er-field{display:flex;padding:6px 16px;font-size:12px;border-bottom:1px solid var(--bg3);align-items:center;gap:8px}
+.er-field:last-child{border-bottom:none}
+.er-field .fname{font-family:var(--mono);color:var(--txt);min-width:160px}
+.er-field .ftype{color:var(--txt3);min-width:120px}
+.er-field .fkey{font-size:10px;padding:1px 6px;border-radius:3px}
+.er-field .pk{background:rgba(251,191,36,.15);color:#fcd34d}
+.er-field .fk{background:rgba(79,124,255,.15);color:#7fa0ff}
+.er-field .fcomment{color:var(--txt3);font-size:11px}
+
+/* API endpoint */
+.api-endpoint{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);margin:8px 0;overflow:hidden}
+.api-header{padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.api-method{font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;min-width:60px;text-align:center}
+.api-method.get{background:rgba(52,211,153,.15);color:#6ee7b7}
+.api-method.post{background:rgba(79,124,255,.15);color:#7fa0ff}
+.api-method.put{background:rgba(251,191,36,.15);color:#fcd34d}
+.api-method.del{background:rgba(248,113,113,.15);color:#fca5a5}
+.api-path{font-family:var(--mono);font-size:13px;color:var(--txt)}
+.api-desc{color:var(--txt3);font-size:12px;margin-left:auto}
+.api-detail{padding:14px 16px;border-top:1px solid var(--bg3);display:none}
+.api-detail.open{display:block}
+
+/* route tree */
+.route-tree{font-family:var(--mono);font-size:12.5px;line-height:1.8;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:16px;margin:12px 0;overflow-x:auto}
+.route-tree .rt-comment{color:var(--txt3)}
+.route-tree .rt-route{color:var(--acc)}
+.route-tree .rt-comp{color:var(--grn)}
+
+/* milestone */
+.milestone{display:flex;gap:16px;margin:16px 0;align-items:flex-start}
+.milestone-marker{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--bg3);border:2px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--txt2)}
+.milestone-marker.active{border-color:var(--grn);color:var(--grn)}
+.milestone-content{flex:1}
+.milestone-title{font-weight:600;font-size:14px;color:var(--txt);margin-bottom:4px}
+.milestone-desc{font-size:12px;color:var(--txt2)}
+
+@media(max-width:900px){.sidebar{display:none}.main{margin-left:0}.content{padding:24px}}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+<div class="sidebar-inner">
+  <div class="logo"><span class="dot"></span>技术设计文档</div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">总览</div>
+    <a class="nav-item" href="#doc-meta">文档信息</a>
+    <a class="nav-item" href="#tech-stack">1 技术栈</a>
+    <a class="nav-item" href="#architecture">2 系统架构</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">数据库</div>
+    <a class="nav-item" href="#er-overview">3 ER 设计总览</a>
+    <a class="nav-item" href="#sql-base">3.1 基础表 SQL</a>
+    <a class="nav-item" href="#sql-ai">3.2 AI 平台表 SQL</a>
+    <a class="nav-item" href="#sql-prompt">3.3 提示词表 SQL</a>
+    <a class="nav-item" href="#sql-canvas">3.4 画布与工作流 SQL</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">API</div>
+    <a class="nav-item" href="#api-overview">4 API 总览</a>
+    <a class="nav-item" href="#api-auth">4.1 认证与用户</a>
+    <a class="nav-item" href="#api-payment">4.2 支付与积分</a>
+    <a class="nav-item" href="#api-ai">4.3 AI 平台与任务</a>
+    <a class="nav-item" href="#api-workflow">4.4 工作台</a>
+    <a class="nav-item" href="#api-prompt">4.5 提示词中心</a>
+    <a class="nav-item" href="#api-canvas">4.6 画布</a>
+    <a class="nav-item" href="#api-admin">4.7 后台管理</a>
+    <a class="nav-item" href="#api-webhook">4.8 Webhook</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">前端</div>
+    <a class="nav-item" href="#frontend-routes">5 前端路由</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">后端</div>
+    <a class="nav-item" href="#backend-modules">6 后端模块划分</a>
+    <a class="nav-item" href="#python-service">6.2 Python 微服务</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">计划</div>
+    <a class="nav-item" href="#milestones">7 开发里程碑</a>
+    <a class="nav-item" href="#deploy">8 部署方案</a>
+  </div>
+</div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+<div class="content">
+
+<!-- HERO -->
+<div class="hero">
+  <div><span class="hero-tag">Phase 1</span><span class="hero-tag">Technical Design</span></div>
+  <h1>AI 短剧一站式服务平台</h1>
+  <p style="color:var(--txt2);font-size:16px;margin-bottom:0">技术设计文档 — 系统架构 · 数据库 ER · API 接口 · 前端路由 · 后端模块 · 开发里程碑</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item">版本：<span>v1.0.0</span></div>
+    <div class="hero-meta-item">日期：<span>2026-10-10</span></div>
+    <div class="hero-meta-item">架构：<span>Laravel 12 + Python FastAPI</span></div>
+    <div class="hero-meta-item">数据库：<span>MySQL 8.0 + Redis 7</span></div>
+  </div>
+</div>
+
+<div id="doc-meta" class="card info-card">
+  <p>本文档为"AI 短剧一站式服务平台"第一阶段技术设计交付物，覆盖：技术栈锁定、系统架构图、数据库 ER 设计与建表 SQL、API 接口文档、前端路由与页面结构、后端模块划分、开发里程碑与部署方案。产品需求详见独立 PRD 文档。</p>
+</div>
+
+<!-- 1. TECH STACK -->
+<h2 id="tech-stack"><span class="hn">1</span>技术栈</h2>
+
+<h3>1.1 主后端（业务层）</h3>
+<table>
+<thead><tr><th>层</th><th>技术</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td>语言/框架</td><td>PHP 8.3 + Laravel 12</td><td>业务逻辑、API、队列、WebSocket</td></tr>
+<tr><td>数据库</td><td>MySQL 8.0</td><td>业务数据持久化</td></tr>
+<tr><td>缓存/队列</td><td>Redis 7 + Laravel Horizon</td><td>队列、缓存、限流、任务状态</td></tr>
+<tr><td>前端</td><td>Inertia.js + Vue3 + TypeScript + Vite</td><td>SSR/SPA 混合渲染</td></tr>
+<tr><td>UI 组件</td><td>Ant Design Vue / Element Plus</td><td>后台 + 用户端 UI</td></tr>
+<tr><td>画布</td><td>Vue3 + X6 / LogicFlow</td><td>画布工作台节点编排</td></tr>
+<tr><td>实时推送</td><td>Laravel Reverb / SSE</td><td>任务进度实时推送</td></tr>
+<tr><td>支付</td><td>yansongda/pay + EasyWeChat + Stripe PHP SDK</td><td>微信/支付宝/Stripe</td></tr>
+<tr><td>视频处理</td><td>php-ffmpeg</td><td>视频拼接/转场/字幕/混音</td></tr>
+<tr><td>加密</td><td>Laravel Crypt (AES-256)</td><td>API Key 加密存储</td></tr>
+<tr><td>权限</td><td>spatie/laravel-permission</td><td>RBAC 角色权限</td></tr>
+<tr><td>审计</td><td>owen-it/laravel-auditing</td><td>操作审计日志</td></tr>
+</tbody>
+</table>
+
+<h3>1.2 AI 微服务层</h3>
+<table>
+<thead><tr><th>层</th><th>技术</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td>语言/框架</td><td>Python 3.12 + FastAPI</td><td>AI 任务执行服务</td></tr>
+<tr><td>任务队列</td><td>Celery + Redis</td><td>Python 侧异步任务队列</td></tr>
+<tr><td>多模型适配</td><td>自研适配器模式</td><td>OpenAI/Anthropic/Gemini/DeepSeek/通义/豆包/即梦/可灵/Runway/Pika/Luma/Midjourney/SD/ComfyUI/TTS/FFmpeg</td></tr>
+<tr><td>回调</td><td>HTTP POST Webhook</td><td>任务完成后回调 Laravel</td></tr>
+</tbody>
+</table>
+
+<h3>1.3 通信机制</h3>
+<div class="card info-card">
+<pre><code>Laravel                         Redis Queue                      Python Worker
+  │                                  │                                  │
+  │── 1. 创建 AiTask 记录 ──────────►│                                  │
+  │── 2. 预扣积分(冻结) ────────────►│                                  │
+  │── 3. 推入队列(payload+task_id) ──┼─────────────────────────────────►│
+  │                                  │                                  │── 4. 拉取任务
+  │                                  │                                  │── 5. 调用 AI API(Key 池调度)
+  │                                  │                                  │── 6. 执行中 POST 回调(进度)
+  │◄────────── 7. Webhook 回调(进度/完成/失败) ◄─────────────────────────┤
+  │── 8. 更新任务状态                                                 │
+  │── 9. 结算积分(成功) / 退回积分(失败)                              │
+  │── 10. WebSocket/SSE 推送前端 ────────────────────────────────────► Frontend</code></pre>
+</div>
+
+<h3>1.4 关键约束</h3>
+<div class="card warn-card">
+<ol>
+  <li>Python 不直接操作 MySQL，所有数据读写通过 Laravel API。</li>
+  <li>Laravel 不阻塞等待 Python，任务全程异步。</li>
+  <li>积分扣费由 Laravel 统一管理：预扣 → 结算 → 失败退回。</li>
+  <li>所有 AI 任务进入队列，支持进度推送、失败重试、超时取消。</li>
+  <li>所有 Key 加密存储，后台脱敏显示，日志不得记录完整 Key。</li>
+  <li>所有写操作幂等，支付回调验签，任务可重试。</li>
+  <li>所有关键操作记录审计日志。</li>
+</ol>
+</div>
+
+<!-- 2. ARCHITECTURE -->
+<h2 id="architecture"><span class="hn">2</span>系统架构</h2>
+
+<h3>2.1 整体架构图</h3>
+<div class="arch-diagram">
+  <div class="arch-layer">
+    <div class="arch-layer-title">客户端层</div>
+    <div class="arch-row">
+      <div class="arch-box pri">后台管理端<br><small>Vue3 + AntDV</small></div>
+      <div class="arch-box pri">用户端<br><small>Vue3 + Inertia</small></div>
+      <div class="arch-box pri">画布工作台<br><small>Vue3 + X6</small></div>
+    </div>
+  </div>
+  <div class="arch-arrow">↓ ↑ HTTPS</div>
+  <div class="arch-layer">
+    <div class="arch-layer-title">接入层</div>
+    <div class="arch-row">
+      <div class="arch-box acc">Nginx<br><small>反向代理 + 负载均衡</small></div>
+    </div>
+  </div>
+  <div class="arch-arrow">↓ ↑</div>
+  <div class="arch-layer">
+    <div class="arch-layer-title">Laravel 业务层（PHP-FPM）</div>
+    <div class="arch-row">
+      <div class="arch-box grn">Auth 模块</div>
+      <div class="arch-box grn">Payment 模块</div>
+      <div class="arch-box grn">Points 模块</div>
+      <div class="arch-box grn">AI Platform 模块</div>
+      <div class="arch-box grn">Workflow 模块</div>
+      <div class="arch-box grn">Prompt 模块</div>
+      <div class="arch-box grn">Canvas 模块</div>
+    </div>
+  </div>
+  <div class="arch-arrow">↓ ↑</div>
+  <div class="arch-layer">
+    <div class="arch-layer-title">队列与实时推送</div>
+    <div class="arch-row">
+      <div class="arch-box ylw">Redis 7<br><small>队列 + 缓存 + 限流</small></div>
+      <div class="arch-box ylw">Horizon<br><small>队列监控</small></div>
+      <div class="arch-box ylw">Reverb<br><small>WebSocket</small></div>
+    </div>
+  </div>
+  <div class="arch-arrow">↓ ↑</div>
+  <div class="arch-layer">
+    <div class="arch-layer-title">AI 微服务层</div>
+    <div class="arch-row">
+      <div class="arch-box pur">FastAPI<br><small>任务接收 API</small></div>
+      <div class="arch-box pur">Celery Worker<br><small>异步执行</small></div>
+      <div class="arch-box pur">Model Adapters<br><small>多模型适配</small></div>
+      <div class="arch-box pur">FFmpeg<br><small>视频合成</small></div>
+    </div>
+  </div>
+  <div class="arch-arrow">↓ ↑</div>
+  <div class="arch-layer">
+    <div class="arch-layer-title">数据层</div>
+    <div class="arch-row">
+      <div class="arch-box">MySQL 8.0<br><small>业务数据</small></div>
+      <div class="arch-box">Object Storage<br><small>七牛/OSS/COS</small></div>
+    </div>
+  </div>
+  <div class="arch-arrow">↓ ↑</div>
+  <div class="arch-layer">
+    <div class="arch-layer-title">外部 AI 平台</div>
+    <div class="arch-row">
+      <div class="arch-box acc">OpenAI</div>
+      <div class="arch-box acc">Anthropic</div>
+      <div class="arch-box acc">Gemini</div>
+      <div class="arch-box acc">DeepSeek</div>
+      <div class="arch-box acc">通义/豆包</div>
+      <div class="arch-box acc">即梦/可灵</div>
+      <div class="arch-box acc">Runway/Pika/Luma</div>
+      <div class="arch-box acc">Midjourney/SD/ComfyUI</div>
+    </div>
+  </div>
+</div>
+
+<h3>2.2 Docker Compose 部署架构</h3>
+<div class="arch-diagram">
+  <div class="arch-row">
+    <div class="arch-box acc">Nginx :80/:443</div>
+    <div class="arch-box grn">PHP-FPM :9000</div>
+    <div class="arch-box ylw">MySQL :3306</div>
+    <div class="arch-box ylw">Redis :6379</div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-row">
+    <div class="arch-box grn">Laravel Horizon<br><small>队列消费</small></div>
+    <div class="arch-box grn">Laravel Reverb<br><small>:8080 WebSocket</small></div>
+    <div class="arch-box pur">FastAPI<br><small>:8000</small></div>
+    <div class="arch-box pur">Celery Worker<br><small>AI 执行</small></div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-row">
+    <div class="arch-box">FFmpeg Container</div>
+    <div class="arch-box">Node/Vite<br><small>前端构建</small></div>
+  </div>
+</div>
+
+<h3>2.3 数据流详图 — AI 任务全流程</h3>
+<pre><code>┌─────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+│  前端    │────►│ Laravel  │────►│  Redis   │────►│  Celery  │────►│ AI 平台  │
+│  Vue3   │     │ API      │     │  Queue   │     │  Worker  │     │ (OpenAI  │
+│         │◄────│          │◄────│          │     │          │◄────│  等)     │
+└─────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘
+     ▲               │                                  │
+     │               ▼                                  │
+     │          ┌──────────┐                             │
+     │          │  MySQL   │◄──── Laravel API ◄──────────┘
+     │          │  8.0     │     (Python 不直连 MySQL)
+     │          └──────────┘
+     │               │
+     │               ▼
+     │          ┌──────────┐
+     └──────────│ Reverb   │  WebSocket/SSE 进度推送
+                │ WebSocket│
+                └──────────┘
+
+步骤说明:
+1. 前端 POST /api/ai/tasks → Laravel 创建 AiTask 记录
+2. Laravel 预扣积分(冻结) → 推入 Redis 队列
+3. Celery Worker 拉取任务 → 调用 Laravel API 获取加密 Key(脱敏后传递)
+4. Worker 调用外部 AI 平台 API
+5. Worker POST /api/webhook/ai-callback → Laravel 更新状态
+6. Laravel 结算积分(成功)/退回积分(失败)
+7. Laravel 通过 Reverb 推送进度到前端</code></pre>
+
+<!-- 3. DATABASE ER -->
+<h2 id="er-overview"><span class="hn">3</span>数据库 ER 设计</h2>
+
+<p>数据库分为 5 个领域：基础与认证、支付与积分、AI 平台与任务、提示词工程、工作台与画布。以下按领域给出建表 SQL。</p>
+
+<h3 id="sql-base">3.1 基础与认证表</h3>
+
+<pre><code>-- ============================================================
+-- 1. 用户表
+-- ============================================================
+CREATE TABLE users (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    email           VARCHAR(255) NULL,
+    phone           VARCHAR(20) NULL,
+    phone_verified_at DATETIME NULL,
+    email_verified_at DATETIME NULL,
+    password        VARCHAR(255) NOT NULL,
+    avatar          VARCHAR(500) NULL,
+    real_name_status ENUM('none','pending','approved','rejected') DEFAULT 'none',
+    real_name_data  JSON NULL,           -- 实名认证信息(加密)
+    status          ENUM('active','banned') DEFAULT 'active',
+    ban_reason      VARCHAR(500) NULL,
+    ban_expires_at  DATETIME NULL,
+    member_level    TINYINT DEFAULT 0,   -- 会员等级
+    member_expires_at DATETIME NULL,
+    invite_code     VARCHAR(32) UNIQUE,  -- 邀请码
+    inviter_id      BIGINT UNSIGNED NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at      DATETIME NULL,
+    INDEX idx_phone (phone),
+    INDEX idx_email (email),
+    INDEX idx_inviter (inviter_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 2. 角色表 (spatie/laravel-permission 兼容)
+-- ============================================================
+CREATE TABLE roles (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(125) NOT NULL,
+    guard_name      VARCHAR(125) NOT NULL DEFAULT 'web',
+    display_name    VARCHAR(100) NOT NULL,
+    description     VARCHAR(500) NULL,
+    data_scope      ENUM('all','self','department') DEFAULT 'self',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_name_guard (name, guard_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 3. 权限表
+-- ============================================================
+CREATE TABLE permissions (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(125) NOT NULL,  -- 如 users.read, ai-keys.write
+    guard_name      VARCHAR(125) NOT NULL DEFAULT 'web',
+    display_name    VARCHAR(100) NOT NULL,
+    module          VARCHAR(50) NOT NULL,    -- 所属模块
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_name_guard (name, guard_name),
+    INDEX idx_module (module)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 4. 角色-权限关联表
+-- ============================================================
+CREATE TABLE role_has_permissions (
+    permission_id   BIGINT UNSIGNED NOT NULL,
+    role_id         BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (permission_id, role_id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 5. 用户-角色关联表
+-- ============================================================
+CREATE TABLE model_has_roles (
+    role_id         BIGINT UNSIGNED NOT NULL,
+    model_type      VARCHAR(125) NOT NULL DEFAULT 'App\\Models\\User',
+    model_id        BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (role_id, model_id, model_type),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    INDEX idx_model (model_id, model_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 6. 审计日志表
+-- ============================================================
+CREATE TABLE audit_logs (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT UNSIGNED NULL,
+    user_type       VARCHAR(125) NULL,
+    event           VARCHAR(50) NOT NULL,     -- created/updated/deleted/custom
+    auditable_type  VARCHAR(125) NOT NULL,
+    auditable_id    BIGINT UNSIGNED NOT NULL,
+    old_values       JSON NULL,
+    new_values       JSON NULL,
+    url              VARCHAR(500) NULL,
+    ip_address      VARCHAR(45) NULL,
+    user_agent      VARCHAR(500) NULL,
+    tags             VARCHAR(255) NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_auditable (auditable_type, auditable_id),
+    INDEX idx_user (user_id),
+    INDEX idx_event (event),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 7. 系统通知表
+-- ============================================================
+CREATE TABLE notifications (
+    id              CHAR(36) PRIMARY KEY,
+    type            VARCHAR(125) NOT NULL,
+    notifiable_type VARCHAR(125) NOT NULL,
+    notifiable_id   BIGINT UNSIGNED NOT NULL,
+    data            JSON NOT NULL,
+    read_at         DATETIME NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_notifiable (notifiable_type, notifiable_id),
+    INDEX idx_read (read_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+
+<h3 id="sql-payment">3.2 支付与积分表</h3>
+
+<pre><code>-- ============================================================
+-- 8. 用户积分钱包表
+-- ============================================================
+CREATE TABLE wallets (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT UNSIGNED NOT NULL UNIQUE,
+    balance         BIGINT DEFAULT 0 NOT NULL,    -- 可用积分
+    frozen          BIGINT DEFAULT 0 NOT NULL,    -- 冻结积分(预扣)
+    total_recharged BIGINT DEFAULT 0 NOT NULL,    -- 累计充值
+    total_consumed  BIGINT DEFAULT 0 NOT NULL,    -- 累计消费
+    total_refunded  BIGINT DEFAULT 0 NOT NULL,    -- 累计退回
+    expires_at      DATETIME NULL,                 -- 积分过期时间
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_balance (balance)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 9. 积分流水表
+-- ============================================================
+CREATE TABLE points_ledger (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    wallet_id       BIGINT UNSIGNED NOT NULL,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    type            ENUM('income','expense','frozen','unfrozen','refund','adjust') NOT NULL,
+    amount          BIGINT NOT NULL,               -- 正数增加/负数减少
+    balance_after   BIGINT NOT NULL,               -- 变动后余额
+    related_type    VARCHAR(125) NULL,             -- 关联对象类型(Order/AiTask)
+    related_id      BIGINT UNSIGNED NULL,           -- 关联对象 ID
+    reason          VARCHAR(500) NULL,
+    operator_id     BIGINT UNSIGNED NULL,           -- 操作人(手动调整时)
+    idempotency_key VARCHAR(128) UNIQUE,            -- 幂等键
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE CASCADE,
+    INDEX idx_user (user_id),
+    INDEX idx_type (type),
+    INDEX idx_related (related_type, related_id),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 10. 充值套餐表
+-- ============================================================
+CREATE TABLE recharge_packages (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    description    VARCHAR(500) NULL,
+    price_cents     INT UNSIGNED NOT NULL,         -- 价格(分)
+    base_points     BIGINT NOT NULL,                -- 基础积分
+    bonus_points    BIGINT DEFAULT 0,               -- 赠送积分
+    is_first_charge TINYINT(1) DEFAULT 0,           -- 首充专属
+    member_level    TINYINT DEFAULT 0,               -- 关联会员等级
+    valid_days      INT DEFAULT 365,                -- 积分有效期
+    sort_order      INT DEFAULT 0,
+    is_enabled      TINYINT(1) DEFAULT 1,
+    starts_at       DATETIME NULL,
+    ends_at         DATETIME NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_enabled (is_enabled, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 11. 支付渠道表
+-- ============================================================
+CREATE TABLE payment_channels (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(50) NOT NULL,          -- wechat/alipay/stripe/paypal/epay
+    display_name    VARCHAR(100) NOT NULL,
+    config          JSON NOT NULL,                  -- 加密配置(应用ID/密钥等)
+    webhook_url     VARCHAR(500) NULL,
+    is_sandbox      TINYINT(1) DEFAULT 0,
+    is_enabled      TINYINT(1) DEFAULT 1,
+    sort_order      INT DEFAULT 0,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 12. 订单表
+-- ============================================================
+CREATE TABLE orders (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_no        VARCHAR(64) UNIQUE NOT NULL,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    package_id      BIGINT UNSIGNED NULL,
+    channel_id      BIGINT UNSIGNED NULL,
+    amount_cents    INT UNSIGNED NOT NULL,
+    points          BIGINT NOT NULL,                -- 应到积分(基础+赠送)
+    bonus_points    BIGINT DEFAULT 0,
+    coupon_id       BIGINT UNSIGNED NULL,
+    discount_cents  INT DEFAULT 0,
+    status          ENUM('pending','paid','delivered','refunded','closed','failed') DEFAULT 'pending',
+    paid_at         DATETIME NULL,
+    delivered_at    DATETIME NULL,
+    closed_at       DATETIME NULL,
+    expires_at      DATETIME NULL,                  -- 支付过期时间
+    extra           JSON NULL,                       -- 渠道返回的额外数据
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    INDEX idx_user (user_id),
+    INDEX idx_status (status),
+    INDEX idx_channel (channel_id),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 13. 支付回调日志表
+-- ============================================================
+CREATE TABLE payment_callbacks (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_no        VARCHAR(64) NOT NULL,
+    channel         VARCHAR(50) NOT NULL,
+    raw_payload     JSON NOT NULL,                  -- 原始回调报文
+    signature       VARCHAR(500) NULL,
+    verified        TINYINT(1) NOT NULL DEFAULT 0,  -- 验签结果
+    processed       TINYINT(1) NOT NULL DEFAULT 0,  -- 处理状态
+    processed_at    DATETIME NULL,
+    error_message   VARCHAR(500) NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_order (order_no),
+    INDEX idx_channel (channel),
+    INDEX idx_processed (processed)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 14. 退款表
+-- ============================================================
+CREATE TABLE refunds (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    refund_no       VARCHAR(64) UNIQUE NOT NULL,
+    order_id        BIGINT UNSIGNED NOT NULL,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    amount_cents    INT UNSIGNED NOT NULL,
+    points_deducted BIGINT NOT NULL,                -- 退回时扣减的积分
+    channel         VARCHAR(50) NOT NULL,
+    channel_refund_no VARCHAR(128) NULL,            -- 渠道退款单号
+    status          ENUM('pending','success','failed','partial') DEFAULT 'pending',
+    reason          VARCHAR(500) NOT NULL,
+    operator_id     BIGINT UNSIGNED NOT NULL,
+    processed_at    DATETIME NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    INDEX idx_order (order_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 15. 优惠券表
+-- ============================================================
+CREATE TABLE coupons (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    type            ENUM('fixed','percentage','points') NOT NULL,
+    value           INT UNSIGNED NOT NULL,          -- 满减金额/折扣百分比/赠送积分
+    min_amount      INT UNSIGNED DEFAULT 0,         -- 最低消费(分)
+    total_count     INT UNSIGNED DEFAULT 0,         -- 发放总量
+    used_count      INT UNSIGNED DEFAULT 0,
+    starts_at      DATETIME NOT NULL,
+    ends_at        DATETIME NOT NULL,
+    scope           ENUM('all','first_charge','specified') DEFAULT 'all',
+    is_enabled      TINYINT(1) DEFAULT 1,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_enabled (is_enabled, starts_at, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 16. 用户优惠券表
+-- ============================================================
+CREATE TABLE user_coupons (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    coupon_id       BIGINT UNSIGNED NOT NULL,
+    status          ENUM('unused','used','expired') DEFAULT 'unused',
+    used_at         DATETIME NULL,
+    order_id        BIGINT UNSIGNED NULL,
+    expires_at      DATETIME NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_status (user_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 17. 兑换码表
+-- ============================================================
+CREATE TABLE redemption_codes (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code            VARCHAR(32) UNIQUE NOT NULL,
+    batch_no        VARCHAR(32) NOT NULL,
+    points          BIGINT NOT NULL,
+    used_by         BIGINT UNSIGNED NULL,
+    used_at         DATETIME NULL,
+    expires_at      DATETIME NULL,
+    is_used         TINYINT(1) DEFAULT 0,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_code (code),
+    INDEX idx_batch (batch_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+
+<h3 id="sql-ai">3.3 AI 平台与任务表</h3>
+
+<pre><code>-- ============================================================
+-- 18. AI 供应商表
+-- ============================================================
+CREATE TABLE ai_providers (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    slug            VARCHAR(50) UNIQUE NOT NULL,    -- openai/anthropic/gemini 等
+    base_url        VARCHAR(500) NOT NULL,
+    proxy_url       VARCHAR(500) NULL,
+    timeout_seconds INT DEFAULT 60,
+    retry_count     INT DEFAULT 3,
+    retry_delay     INT DEFAULT 5,
+    circuit_threshold INT DEFAULT 5,              -- 熔断阈值(连续失败次数)
+    is_enabled       TINYINT(1) DEFAULT 1,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 19. AI 模型表
+-- ============================================================
+CREATE TABLE ai_models (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    provider_id     BIGINT UNSIGNED NOT NULL,
+    name            VARCHAR(100) NOT NULL,
+    model_id        VARCHAR(100) NOT NULL,          -- 模型标识 gpt-4/claude-3 等
+    capability      SET('text2text','text2image','image2video','text2video','tts','video_compose','image_edit') NOT NULL,
+    billing_type    ENUM('token','per_call','duration','resolution') NOT NULL,
+    billing_rate    DECIMAL(10,4) NOT NULL,         -- 计费倍率
+    points_price    DECIMAL(10,4) NOT NULL,         -- 积分单价
+    max_concurrency INT DEFAULT 5,
+    qps_limit       INT DEFAULT 10,
+    timeout_seconds INT DEFAULT 120,
+    retry_count     INT DEFAULT 2,
+    is_enabled      TINYINT(1) DEFAULT 1,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (provider_id) REFERENCES ai_providers(id) ON DELETE CASCADE,
+    INDEX idx_provider (provider_id),
+    INDEX idx_capability (capability(64)),
+    INDEX idx_enabled (is_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 20. AI Key 池表
+-- ============================================================
+CREATE TABLE ai_keys (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    provider_id     BIGINT UNSIGNED NOT NULL,
+    model_id        BIGINT UNSIGNED NULL,          -- NULL=该供应商通用
+    encrypted_key  TEXT NOT NULL,                 -- AES-256 加密后的 Key
+    key_masked      VARCHAR(50) NOT NULL,          -- 脱敏显示用 sk-****1234
+    weight          INT DEFAULT 1,                  -- 轮询权重
+    status          ENUM('active','rate_limited','error','disabled') DEFAULT 'active',
+    balance         DECIMAL(12,2) NULL,            -- 余额(元)
+    balance_checked_at DATETIME NULL,
+    total_calls     BIGINT DEFAULT 0,
+    total_cost      DECIMAL(12,2) DEFAULT 0,
+    last_error      VARCHAR(500) NULL,
+    last_used_at    DATETIME NULL,
+    is_enabled      TINYINT(1) DEFAULT 1,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (provider_id) REFERENCES ai_providers(id) ON DELETE CASCADE,
+    INDEX idx_provider_model (provider_id, model_id),
+    INDEX idx_status (status, is_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 21. AI Key 使用记录表
+-- ============================================================
+CREATE TABLE ai_key_usage (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    key_id          BIGINT UNSIGNED NOT NULL,
+    task_id         BIGINT UNSIGNED NULL,
+    cost_cents      INT UNSIGNED DEFAULT 0,         -- 实际成本(分)
+    points_consumed BIGINT DEFAULT 0,               -- 消耗积分
+    latency_ms      INT NULL,
+    is_success      TINYINT(1) DEFAULT 1,
+    error_message   VARCHAR(500) NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (key_id) REFERENCES ai_keys(id) ON DELETE CASCADE,
+    INDEX idx_key (key_id, created_at),
+    INDEX idx_task (task_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 22. AI 定价日志表
+-- ============================================================
+CREATE TABLE ai_pricing_logs (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    model_id        BIGINT UNSIGNED NOT NULL,
+    old_billing_rate DECIMAL(10,4) NULL,
+    new_billing_rate DECIMAL(10,4) NOT NULL,
+    old_points_price  DECIMAL(10,4) NULL,
+    new_points_price  DECIMAL(10,4) NOT NULL,
+    reason          VARCHAR(500) NULL,
+    operator_id     BIGINT UNSIGNED NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (model_id) REFERENCES ai_models(id) ON DELETE CASCADE,
+    INDEX idx_model (model_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 23. AI 任务表
+-- ============================================================
+CREATE TABLE ai_tasks (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    task_no         VARCHAR(64) UNIQUE NOT NULL,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    project_id      BIGINT UNSIGNED NULL,
+    node_id         BIGINT UNSIGNED NULL,          -- 关联工作台节点
+    model_id        BIGINT UNSIGNED NOT NULL,
+    key_id          BIGINT UNSIGNED NULL,          -- 实际使用的 Key
+    task_type       VARCHAR(50) NOT NULL,          -- outline/script/storyboard/reference/scene_image/video/merge
+    input_payload   JSON NOT NULL,                 -- 输入参数
+    output_result   JSON NULL,                     -- 输出结果
+    status          ENUM('queued','charging','running','generating','post_processing','success','failed','cancelled','refunded') DEFAULT 'queued',
+    progress        TINYINT DEFAULT 0,             -- 进度 0-100
+    points_estimated BIGINT NOT NULL,              -- 预估积分
+    points_consumed BIGINT DEFAULT 0,              -- 实际消耗
+    cost_cents      INT DEFAULT 0,                 -- 实际成本
+    error_message   VARCHAR(1000) NULL,
+    retry_count     INT DEFAULT 0,
+    max_retries     INT DEFAULT 2,
+    timeout_at      DATETIME NULL,                 -- 超时时间
+    started_at      DATETIME NULL,
+    completed_at    DATETIME NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (model_id) REFERENCES ai_models(id),
+    INDEX idx_user (user_id, status),
+    INDEX idx_status (status),
+    INDEX idx_project (project_id, node_id),
+    INDEX idx_task_type (task_type),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 24. AI 任务日志表
+-- ============================================================
+CREATE TABLE ai_task_logs (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    task_id         BIGINT UNSIGNED NOT NULL,
+    event           VARCHAR(50) NOT NULL,           -- queued/charging/started/progress/callback/completed/failed/cancelled/refunded
+    message         VARCHAR(1000) NULL,
+    data            JSON NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES ai_tasks(id) ON DELETE CASCADE,
+    INDEX idx_task (task_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+
+<h3 id="sql-prompt">3.4 提示词工程表</h3>
+
+<pre><code>-- ============================================================
+-- 25. 提示词分类表
+-- ============================================================
+CREATE TABLE prompt_categories (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    slug            VARCHAR(50) UNIQUE NOT NULL,   -- system/node/genre/style/negative/param/structured/audit/rewrite
+    description     VARCHAR(500) NULL,
+    sort_order      INT DEFAULT 0,
+    is_system       TINYINT(1) DEFAULT 0,          -- 系统预设不可删除
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 26. 提示词模板表
+-- ============================================================
+CREATE TABLE prompt_templates (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category_id     BIGINT UNSIGNED NOT NULL,
+    name            VARCHAR(200) NOT NULL,
+    description     VARCHAR(500) NULL,
+    content         TEXT NOT NULL,                 -- 提示词内容(含变量占位符)
+    variables       JSON NULL,                     -- 变量定义 [{name,type,required,default,validation}]
+    applicable_models JSON NULL,                  -- 适用模型 ID 列表
+    applicable_nodes JSON NULL,                   -- 适用节点列表
+    negative_prompt TEXT NULL,                    -- 负向提示词
+    param_preset    JSON NULL,                    -- 参数预设 {temperature,seed,steps,...}
+    status          ENUM('draft','testing','published','offline') DEFAULT 'draft',
+    is_locked       TINYINT(1) DEFAULT 0,         -- 系统锁定(用户不可改)
+    created_by      BIGINT UNSIGNED NOT NULL,
+    updated_by      BIGINT UNSIGNED NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES prompt_categories(id),
+    INDEX idx_category (category_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 27. 提示词版本表
+-- ============================================================
+CREATE TABLE prompt_versions (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    template_id     BIGINT UNSIGNED NOT NULL,
+    version_number  INT NOT NULL,
+    content         TEXT NOT NULL,
+    variables       JSON NULL,
+    negative_prompt TEXT NULL,
+    param_preset    JSON NULL,
+    status          ENUM('draft','testing','published','offline') DEFAULT 'draft',
+    change_reason   VARCHAR(500) NULL,
+    created_by      BIGINT UNSIGNED NOT NULL,
+    published_at    DATETIME NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (template_id) REFERENCES prompt_templates(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_template_version (template_id, version_number),
+    INDEX idx_template (template_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 28. 提示词变量表 (变量字典)
+-- ============================================================
+CREATE TABLE prompt_variables (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(50) NOT NULL,          -- genre/style/audience/outline/characters 等
+    display_name    VARCHAR(100) NOT NULL,
+    type            ENUM('string','text','number','enum','boolean','json') NOT NULL,
+    description     VARCHAR(500) NULL,
+    enum_values     JSON NULL,                    -- 枚举可选值
+    default_value   VARCHAR(500) NULL,
+    is_required     TINYINT(1) DEFAULT 0,
+    validation_rule VARCHAR(500) NULL,            -- 正则或校验规则
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 29. 类型预设表
+-- ============================================================
+CREATE TABLE genre_presets (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(50) NOT NULL,          -- 古装/都市/甜宠/逆袭/悬疑/玄幻/科幻/战神/萌宝/婆媳/职场
+    slug            VARCHAR(50) UNIQUE NOT NULL,
+    description     VARCHAR(500) NULL,
+    default_outline_prompt_id   BIGINT UNSIGNED NULL,
+    default_script_prompt_id    BIGINT UNSIGNED NULL,
+    default_table_prompt_id    BIGINT UNSIGNED NULL,
+    default_reference_prompt_id BIGINT UNSIGNED NULL,
+    default_storyboard_prompt_id BIGINT UNSIGNED NULL,
+    default_video_prompt_id    BIGINT UNSIGNED NULL,
+    default_merge_prompt_id    BIGINT UNSIGNED NULL,
+    default_negative_prompt_id BIGINT UNSIGNED NULL,
+    pacing_params   JSON NULL,                    -- 节奏参数
+    is_enabled      TINYINT(1) DEFAULT 1,
+    sort_order      INT DEFAULT 0,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 30. 风格预设表
+-- ============================================================
+CREATE TABLE style_presets (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(50) NOT NULL,          -- 写实/电影感/国风/动漫/3D/赛博/水墨/港风/韩系/日系/复古
+    slug            VARCHAR(50) UNIQUE NOT NULL,
+    description     VARCHAR(500) NULL,
+    image_prompt_id    BIGINT UNSIGNED NULL,
+    camera_language    JSON NULL,                  -- 镜头语言
+    color_palette      JSON NULL,                  -- 色彩
+    lighting           JSON NULL,                   -- 光影
+    composition        JSON NULL,                  -- 构图
+    reference_style    VARCHAR(500) NULL,
+    video_camera_move  JSON NULL,                  -- 视频运镜
+    negative_prompt_id BIGINT UNSIGNED NULL,
+    is_enabled         TINYINT(1) DEFAULT 1,
+    sort_order         INT DEFAULT 0,
+    created_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 31. 提示词绑定表
+-- ============================================================
+CREATE TABLE prompt_bindings (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    template_id     BIGINT UNSIGNED NOT NULL,
+    workflow_node   VARCHAR(50) NOT NULL,          -- outline/script/table/reference/storyboard/video/merge
+    genre_id        BIGINT UNSIGNED NULL,          -- 绑定类型(NULL=通用)
+    style_id        BIGINT UNSIGNED NULL,          -- 绑定风格
+    provider_id     BIGINT UNSIGNED NULL,
+    model_id        BIGINT UNSIGNED NULL,
+    language        VARCHAR(10) NULL,
+    platform        VARCHAR(50) NULL,              -- douyin/kuaishou/xhs/bilibili
+    ratio           VARCHAR(10) NULL,              -- 9:16/16:9/1:1
+    duration        VARCHAR(10) NULL,              -- 30s/60s/90s/120s/180s
+    audience        VARCHAR(20) NULL,              -- male/female/all
+    priority        INT DEFAULT 0,                 -- 优先级(高优先)
+    rollout_percent INT DEFAULT 100,               -- 灰度比例 0-100
+    ab_test_group   VARCHAR(20) NULL,             -- A/B 测试分组标识
+    is_enabled      TINYINT(1) DEFAULT 1,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (template_id) REFERENCES prompt_templates(id) ON DELETE CASCADE,
+    INDEX idx_node (workflow_node, is_enabled, priority),
+    INDEX idx_match (workflow_node, genre_id, style_id, model_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 32. 项目提示词配置表
+-- ============================================================
+CREATE TABLE project_prompt_configs (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_id      BIGINT UNSIGNED NOT NULL,
+    node            VARCHAR(50) NOT NULL,          -- outline/script/table/reference/storyboard/video/merge
+    template_id     BIGINT UNSIGNED NULL,
+    custom_content  TEXT NULL,                     -- 项目级自定义提示词(覆盖模板)
+    custom_variables JSON NULL,                   -- 项目级变量覆盖
+    source          ENUM('system','genre','style','user_template','project_override') NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_project_node (project_id, node)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 33. 提示词优化任务表
+-- ============================================================
+CREATE TABLE prompt_optimization_tasks (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    template_id     BIGINT UNSIGNED NOT NULL,
+    optimization_target ENUM('quality','cost','compliance','style_consistency','reduce_regenerate') NOT NULL,
+    candidate_content TEXT NOT NULL,               -- 候选提示词
+    test_result     JSON NULL,                     -- 测试结果 {score,cost,duration,compliance}
+    status          ENUM('pending','testing','completed','adopted','rejected') DEFAULT 'pending',
+    points_consumed BIGINT DEFAULT 0,
+    created_by      BIGINT UNSIGNED NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (template_id) REFERENCES prompt_templates(id),
+    INDEX idx_template (template_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 34. 提示词测试结果表
+-- ============================================================
+CREATE TABLE prompt_test_results (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    template_id     BIGINT UNSIGNED NOT NULL,
+    version_id     BIGINT UNSIGNED NULL,
+    test_input     JSON NOT NULL,                  -- 测试输入变量
+    test_output    JSON NULL,                     -- 生成结果
+    quality_score  TINYINT NULL,                  -- 质量评分 1-5
+    compliance_score TINYINT NULL,                -- 合规率 1-5
+    points_consumed BIGINT DEFAULT 0,
+    latency_ms     INT NULL,
+    is_success     TINYINT(1) DEFAULT 1,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (template_id) REFERENCES prompt_templates(id) ON DELETE CASCADE,
+    INDEX idx_template (template_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 35. 提示词反馈表
+-- ============================================================
+CREATE TABLE prompt_feedback (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    template_id     BIGINT UNSIGNED NULL,
+    task_id         BIGINT UNSIGNED NULL,
+    node            VARCHAR(50) NULL,
+    action          ENUM('rate','regenerate','delete','export','adopt') NOT NULL,
+    rating          TINYINT NULL,                  -- 1-5 星
+    comment         VARCHAR(500) NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_template (template_id, created_at),
+    INDEX idx_node_action (node, action)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 36. 提示词 A/B 测试表
+-- ============================================================
+CREATE TABLE prompt_ab_tests (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    node            VARCHAR(50) NOT NULL,
+    template_a_id   BIGINT UNSIGNED NOT NULL,
+    template_b_id   BIGINT UNSIGNED NOT NULL,
+    traffic_split   JSON NOT NULL,               -- {"a":50,"b":50}
+    target_metric   ENUM('success_rate','quality_score','cost','duration','compliance') NOT NULL,
+    starts_at       DATETIME NOT NULL,
+    ends_at         DATETIME NULL,
+    status          ENUM('running','completed','stopped') DEFAULT 'running',
+    winner_template_id BIGINT UNSIGNED NULL,
+    result_data     JSON NULL,                   -- 统计数据
+    created_by      BIGINT UNSIGNED NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (template_a_id) REFERENCES prompt_templates(id),
+    FOREIGN KEY (template_b_id) REFERENCES prompt_templates(id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+
+<h3 id="sql-canvas">3.5 工作台与画布表</h3>
+
+<pre><code>-- ============================================================
+-- 37. 项目表
+-- ============================================================
+CREATE TABLE projects (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    name            VARCHAR(200) NOT NULL,
+    description    VARCHAR(1000) NULL,
+    genre_id        BIGINT UNSIGNED NULL,
+    style_id        BIGINT UNSIGNED NULL,
+    audience        VARCHAR(20) NULL,
+    platform        VARCHAR(50) NULL,
+    episode_count   INT DEFAULT 1,
+    episode_duration VARCHAR(10) NULL,
+    ratio           VARCHAR(10) NULL,
+    language        VARCHAR(10) DEFAULT 'zh',
+    resolution      VARCHAR(10) DEFAULT '1080p',
+    status          ENUM('draft','in_progress','completed','archived') DEFAULT 'draft',
+    current_step    VARCHAR(50) DEFAULT 'outline', -- 当前执行到的节点
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user (user_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 38. 大纲表
+-- ============================================================
+CREATE TABLE outlines (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_id      BIGINT UNSIGNED NOT NULL,
+    version         INT DEFAULT 1,
+    world_view      TEXT NULL,
+    characters_bio  JSON NULL,                    -- 人物小传
+    episode_outlines JSON NULL,                   -- 分集大纲
+    core_conflict   TEXT NULL,
+    relationships   JSON NULL,                    -- 人物关系
+    hooks           JSON NULL,                    -- 分集钩子
+    climaxes        JSON NULL,                    -- 爽点
+    twists          JSON NULL,                    -- 反转
+    task_id         BIGINT UNSIGNED NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    INDEX idx_project (project_id, version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 39. 剧本表
+-- ============================================================
+CREATE TABLE scripts (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_id      BIGINT UNSIGNED NOT NULL,
+    outline_id      BIGINT UNSIGNED NULL,
+    version         INT DEFAULT 1,
+    episode_no      INT DEFAULT 1,
+    scenes          JSON NULL,                    -- [{scene_no,location,time,dialogue,narration,action,camera_suggestion,emotion,ending_hook}]
+    task_id         BIGINT UNSIGNED NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    INDEX idx_project (project_id, episode_no, version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 40. 基础表格表
+-- ============================================================
+CREATE TABLE storyboards (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_id      BIGINT UNSIGNED NOT NULL,
+    version         INT DEFAULT 1,
+    characters_table JSON NULL,                   -- 角色表
+    scenes_table    JSON NULL,                    -- 场景表
+    props_table     JSON NULL,                    -- 道具表
+    shots_table     JSON NULL,                    -- 分镜表
+    dialogue_table  JSON NULL,                    -- 台词表
+    sfx_table       JSON NULL,                    -- 音效表
+    subtitle_table  JSON NULL,                    -- 字幕表
+    task_id         BIGINT UNSIGNED NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    INDEX idx_project (project_id, version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 41. 素材/资产表
+-- ============================================================
+CREATE TABLE assets (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    project_id      BIGINT UNSIGNED NULL,
+    type            ENUM('image','video','audio','text','json') NOT NULL,
+    name            VARCHAR(200) NOT NULL,
+    file_path       VARCHAR(500) NOT NULL,
+    file_url        VARCHAR(500) NULL,
+    file_size       BIGINT NULL,
+    mime_type       VARCHAR(100) NULL,
+    metadata        JSON NULL,                    -- 宽高/时长/分辨率等
+    source          ENUM('ai_generated','uploaded','imported') DEFAULT 'ai_generated',
+    task_id         BIGINT UNSIGNED NULL,
+    is_deleted      TINYINT(1) DEFAULT 0,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user (user_id, type),
+    INDEX idx_project (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 42. 画布表
+-- ============================================================
+CREATE TABLE canvases (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    name            VARCHAR(200) NOT NULL,
+    description    VARCHAR(1000) NULL,
+    thumbnail      VARCHAR(500) NULL,
+    structure      JSON NOT NULL,                 -- {nodes:[], edges:[]}
+    is_template     TINYINT(1) DEFAULT 0,
+    status          ENUM('private','pending_review','published','rejected','taken_down') DEFAULT 'private',
+    category        VARCHAR(50) NULL,
+    tags            JSON NULL,
+    view_count      INT DEFAULT 0,
+    like_count      INT DEFAULT 0,
+    collect_count   INT DEFAULT 0,
+    clone_count     INT DEFAULT 0,
+    share_password  VARCHAR(100) NULL,
+    parent_canvas_id BIGINT UNSIGNED NULL,         -- 克隆来源
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user (user_id),
+    INDEX idx_status (status, category),
+    INDEX idx_template (is_template)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 43. 画布版本表
+-- ============================================================
+CREATE TABLE canvas_versions (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    canvas_id       BIGINT UNSIGNED NOT NULL,
+    version_number  INT NOT NULL,
+    structure       JSON NOT NULL,
+    change_note     VARCHAR(500) NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (canvas_id) REFERENCES canvases(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_canvas_version (canvas_id, version_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 44. 画布共享互动表
+-- ============================================================
+CREATE TABLE canvas_interactions (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    canvas_id       BIGINT UNSIGNED NOT NULL,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    type            ENUM('like','collect','comment','clone','report') NOT NULL,
+    content         VARCHAR(1000) NULL,            -- 评论内容/举报原因
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (canvas_id) REFERENCES canvases(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_canvas_type (user_id, canvas_id, type), -- 防重复点赞/收藏
+    INDEX idx_canvas (canvas_id, type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 45. 工作流运行表
+-- ============================================================
+CREATE TABLE workflow_runs (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_id      BIGINT UNSIGNED NOT NULL,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    node            VARCHAR(50) NOT NULL,          -- 当前节点
+    status          ENUM('pending','running','success','failed','cancelled') DEFAULT 'pending',
+    total_points_estimated BIGINT DEFAULT 0,
+    total_points_consumed BIGINT DEFAULT 0,
+    started_at      DATETIME NULL,
+    completed_at    DATETIME NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    INDEX idx_project (project_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 46. 工作流节点提示词绑定表
+-- ============================================================
+CREATE TABLE workflow_node_prompt_bindings (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    workflow_node   VARCHAR(50) NOT NULL,
+    binding_id      BIGINT UNSIGNED NOT NULL,      -- 关联 prompt_bindings
+    is_enabled      TINYINT(1) DEFAULT 1,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (binding_id) REFERENCES prompt_bindings(id) ON DELETE CASCADE,
+    INDEX idx_node (workflow_node, is_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+
+<!-- 4. API -->
+<h2 id="api-overview"><span class="hn">4</span>API 接口设计</h2>
+
+<p>所有 API 遵循 RESTful 规范，基础路径 <code>/api</code>。后台管理 API 前缀 <code>/api/admin</code>，用户端 API 前缀 <code>/api</code>。所有写操作幂等，需携带 <code>Idempotency-Key</code> 头。认证使用 Laravel Sanctum Token。</p>
+
+<h3 id="api-auth">4.1 认证与用户 API</h3>
+<table>
+<thead><tr><th>方法</th><th>路径</th><th>说明</th><th>权限</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/auth/register</code></td><td>注册（手机号+验证码）</td><td>公开</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/auth/login</code></td><td>登录</td><td>公开</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/auth/logout</code></td><td>登出</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/auth/sms/send</code></td><td>发送短信验证码</td><td>公开</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/auth/me</code></td><td>当前用户信息</td><td>认证</td></tr>
+<tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/users/profile</code></td><td>更新资料</td><td>认证</td></tr>
+<tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/users/password</code></td><td>修改密码</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/users/real-name</code></td><td>提交实名认证</td><td>认证</td></tr>
+</tbody>
+</table>
+
+<h3 id="api-payment">4.2 支付与积分 API</h3>
+<table>
+<thead><tr><th>方法</th><th>路径</th><th>说明</th><th>权限</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/wallet</code></td><td>钱包余额（可用+冻结）</td><td>认证</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/wallet/ledger</code></td><td>积分流水（分页+筛选）</td><td>认证</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/recharge/packages</code></td><td>充值套餐列表</td><td>公开</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/payment/channels</code></td><td>可用支付渠道</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/orders</code></td><td>创建充值订单</td><td>认证</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/orders</code></td><td>订单列表</td><td>认证</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/orders/{id}</code></td><td>订单详情</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/orders/{id}/pay</code></td><td>发起支付</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/payments/callback/{channel}</code></td><td>支付回调（验签+幂等）</td><td>验签</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/redeem-codes/exchange</code></td><td>兑换码兑换积分</td><td>认证</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/coupons/available</code></td><td>可用优惠券</td><td>认证</td></tr>
+</tbody>
+</table>
+
+<h3 id="api-ai">4.3 AI 平台与任务 API</h3>
+<table>
+<thead><tr><th>方法</th><th>路径</th><th>说明</th><th>权限</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/ai/tasks</code></td><td>创建 AI 任务（预扣积分+入队）</td><td>认证</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/ai/tasks</code></td><td>任务列表（分页+状态筛选）</td><td>认证</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/ai/tasks/{id}</code></td><td>任务详情（含进度+结果）</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/ai/tasks/{id}/cancel</code></td><td>取消任务（退回积分）</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/ai/tasks/{id}/retry</code></td><td>重试任务</td><td>认证</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/ai/tasks/{id}/logs</code></td><td>任务日志</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/webhook/ai-callback</code></td><td>Python Worker 回调（进度/完成/失败）</td><td>内部签名</td></tr>
+</tbody>
+</table>
+
+<h3 id="api-workflow">4.4 全自动工作台 API</h3>
+<table>
+<thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/projects</code></td><td>创建项目（含默认提示词加载）</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/projects</code></td><td>项目列表</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/projects/{id}</code></td><td>项目详情</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/projects/{id}/prompt-config</code></td><td>项目各节点提示词配置</td></tr>
+<tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/projects/{id}/prompt-config</code></td><td>修改项目提示词配置</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/projects/{id}/outlines</code></td><td>大纲列表（含版本）</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/projects/{id}/outlines/generate</code></td><td>生成大纲</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/projects/{id}/scripts</code></td><td>剧本列表</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/projects/{id}/scripts/generate</code></td><td>生成剧本</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/projects/{id}/storyboards</code></td><td>基础表格列表</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/projects/{id}/storyboards/generate</code></td><td>生成基础表格</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/projects/{id}/references/generate</code></td><td>生成参考图</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/projects/{id}/scene-images/generate</code></td><td>生成分镜图</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/projects/{id}/videos/generate</code></td><td>生成视频</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/projects/{id}/merge</code></td><td>合并视频（FFmpeg）</td></tr>
+</tbody>
+</table>
+
+<h3 id="api-prompt">4.5 提示词中心 API</h3>
+<table>
+<thead><tr><th>方法</th><th>路径</th><th>说明</th><th>权限</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/prompt-templates</code></td><td>提示词模板列表</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/prompt-templates</code></td><td>创建模板</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/prompt-templates/{id}</code></td><td>模板详情</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/admin/prompt-templates/{id}</code></td><td>编辑模板（生成新版本）</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-del">DEL</span></td><td><code>/api/admin/prompt-templates/{id}</code></td><td>删除模板</td><td>超级管理员</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/prompt-templates/{id}/optimize</code></td><td>AI 辅助优化</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/prompt-templates/{id}/publish</code></td><td>发布版本</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/prompt-templates/{id}/rollback</code></td><td>回滚到指定版本</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/prompt-templates/{id}/test</code></td><td>测试生成</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/prompt-templates/{id}/versions</code></td><td>版本列表</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/prompt-templates/{id}/diff</code></td><td>版本差异对比</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/prompt-bindings</code></td><td>节点绑定列表</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/prompt-bindings</code></td><td>创建绑定</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/genre-presets</code></td><td>类型预设列表</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/genre-presets</code></td><td>创建类型预设</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/style-presets</code></td><td>风格预设列表</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/style-presets</code></td><td>创建风格预设</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/prompt-ab-tests</code></td><td>A/B 测试列表</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/prompt-ab-tests</code></td><td>创建 A/B 测试</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/prompt-ab-tests/{id}/conclude</code></td><td>结束 A/B 测试并发布胜出</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/prompt-feedback</code></td><td>反馈分析数据</td><td>提示词工程师+</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/projects/prompt-defaults</code></td><td>根据类型+风格加载默认提示词</td><td>认证</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/prompts/feedback</code></td><td>用户提交提示词反馈</td><td>认证</td></tr>
+</tbody>
+</table>
+
+<h3 id="api-canvas">4.6 画布 API</h3>
+<table>
+<thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/canvas</code></td><td>创建画布</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/canvas</code></td><td>我的画布列表</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/canvas/{id}</code></td><td>画布详情</td></tr>
+<tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/canvas/{id}</code></td><td>更新画布结构</td></tr>
+<tr><td><span class="badge badge-del">DEL</span></td><td><code>/api/canvas/{id}</code></td><td>删除画布</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/canvas/{id}/run</code></td><td>运行画布节点</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/canvas/{id}/versions</code></td><td>画布版本列表</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/canvas/{id}/publish</code></td><td>发布到社区</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/canvas/{id}/clone</code></td><td>克隆画布</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/canvas/share</code></td><td>社区画布列表（搜索+筛选）</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/canvas/{id}/interact</code></td><td>点赞/收藏/评论/举报</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/canvas/import</code></td><td>导入画布 JSON</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/canvas/{id}/export</code></td><td>导出画布 JSON</td></tr>
+</tbody>
+</table>
+
+<h3 id="api-admin">4.7 后台管理 API</h3>
+<table>
+<thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/dashboard</code></td><td>仪表盘数据</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/users</code></td><td>用户列表</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/users/{id}</code></td><td>用户详情</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/users/{id}/points-adjust</code></td><td>积分调整</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/users/{id}/ban</code></td><td>封禁用户</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/users/{id}/unban</code></td><td>解封用户</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/roles</code></td><td>角色列表</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/roles</code></td><td>创建角色</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/orders</code></td><td>订单管理</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/orders/{id}/refund</code></td><td>退款</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/payment/callbacks</code></td><td>回调日志</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/ai/providers</code></td><td>AI 供应商管理</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/ai/providers</code></td><td>创建供应商</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/ai/models</code></td><td>AI 模型管理</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/ai/models</code></td><td>创建模型</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/ai/keys</code></td><td>Key 池管理</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/ai/keys</code></td><td>添加 Key（加密存储）</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/ai/cost-stats</code></td><td>成本统计</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/finance/income</code></td><td>收入统计</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/finance/profit</code></td><td>毛利统计</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/canvas/share</code></td><td>画布共享审核</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/canvas/{id}/review</code></td><td>画布审核</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/content/assets</code></td><td>内容管理</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/admin/content/{id}/takedown</code></td><td>下架内容</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/admin/system/config</code></td><td>系统配置</td></tr>
+<tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/admin/system/config</code></td><td>更新系统配置</td></tr>
+</tbody>
+</table>
+
+<h3 id="api-webhook">4.8 Webhook 与内部 API</h3>
+<table>
+<thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/webhook/ai-callback</code></td><td>Python Worker 任务回调</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/internal/ai/task/{task_no}</code></td><td>Python 拉取任务详情</td></tr>
+<tr><td><span class="badge badge-get">GET</span></td><td><code>/api/internal/ai/key/{model_id}</code></td><td>Python 获取可用 Key（脱敏后）</td></tr>
+<tr><td><span class="badge badge-post">POST</span></td><td><code>/api/internal/ai/key-usage</code></td><td>Python 回报 Key 使用记录</td></tr>
+</tbody>
+</table>
+
+<!-- 5. FRONTEND ROUTES -->
+<h2 id="frontend-routes"><span class="hn">5</span>前端路由与页面结构</h2>
+
+<h3>5.1 用户端路由</h3>
+<div class="route-tree">
+<span class="rt-comment">// routes/user.ts — Inertia.js 页面路由</span><br>
+<span class="rt-route">/</span> <span class="rt-comment">→ Home 首页</span><br>
+<span class="rt-route">/login</span> <span class="rt-comment">→ Auth/Login 登录</span><br>
+<span class="rt-route">/register</span> <span class="rt-comment">→ Auth/Register 注册</span><br>
+<span class="rt-route">/dashboard</span> <span class="rt-comment">→ User/Dashboard 用户首页</span><br>
+<span class="rt-route">/recharge</span> <span class="rt-comment">→ User/Recharge 充值页</span><br>
+&nbsp;&nbsp;<span class="rt-route">/recharge/history</span> <span class="rt-comment">→ User/RechargeHistory 充值记录</span><br>
+<span class="rt-route">/wallet</span> <span class="rt-comment">→ User/Wallet 积分钱包</span><br>
+&nbsp;&nbsp;<span class="rt-route">/wallet/ledger</span> <span class="rt-comment">→ User/PointsLedger 积分流水</span><br>
+<span class="rt-route">/projects</span> <span class="rt-comment">→ User/Projects 项目列表</span><br>
+&nbsp;&nbsp;<span class="rt-route">/projects/create</span> <span class="rt-comment">→ User/ProjectCreate 创建向导(3步)</span><br>
+&nbsp;&nbsp;<span class="rt-route">/projects/:id</span> <span class="rt-comment">→ User/ProjectDetail 项目详情</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/workflow</span> <span class="rt-comment">→ User/AutoWorkflow 全自动工作台</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/workflow/outline</span> <span class="rt-comment">→ 大纲节点</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/workflow/script</span> <span class="rt-comment">→ 剧本节点</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/workflow/table</span> <span class="rt-comment">→ 基础表格节点</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/workflow/reference</span> <span class="rt-comment">→ 参考图节点</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/workflow/storyboard</span> <span class="rt-comment">→ 分镜图节点</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/workflow/video</span> <span class="rt-comment">→ 视频节点</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/workflow/merge</span> <span class="rt-comment">→ 合并节点</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="rt-route">/projects/:id/prompts</span> <span class="rt-comment">→ User/ProjectPrompts 提示词配置</span><br>
+<span class="rt-route">/canvas</span> <span class="rt-comment">→ User/Canvas 画布列表</span><br>
+&nbsp;&nbsp;<span class="rt-route">/canvas/:id</span> <span class="rt-comment">→ User/CanvasEditor 画布编辑器(X6/LogicFlow)</span><br>
+<span class="rt-route">/community</span> <span class="rt-comment">→ User/Community 画布社区</span><br>
+&nbsp;&nbsp;<span class="rt-route">/community/canvas/:id</span> <span class="rt-comment">→ User/CanvasDetail 画布详情</span><br>
+<span class="rt-route">/assets</span> <span class="rt-comment">→ User/Assets 素材库</span><br>
+<span class="rt-route">/profile</span> <span class="rt-comment">→ User/Profile 个人资料</span><br>
+&nbsp;&nbsp;<span class="rt-route">/profile/security</span> <span class="rt-comment">→ 安全设置</span><br>
+&nbsp;&nbsp;<span class="rt-route">/profile/real-name</span> <span class="rt-comment">→ 实名认证</span><br>
+<span class="rt-route">/orders</span> <span class="rt-comment">→ User/Orders 订单列表</span><br>
+<span class="rt-route">/messages</span> <span class="rt-comment">→ User/Messages 消息通知</span><br>
+<span class="rt-route">/invite</span> <span class="rt-comment">→ User/Invite 邀请</span><br>
+<span class="rt-route">/membership</span> <span class="rt-comment">→ User/Membership 会员</span>
+</div>
+
+<h3>5.2 后台管理端路由</h3>
+<div class="route-tree">
+<span class="rt-comment">// routes/admin.ts — 后台管理路由</span><br>
+<span class="rt-route">/admin</span> <span class="rt-comment">→ Admin/Dashboard 仪表盘</span><br>
+<span class="rt-route">/admin/users</span> <span class="rt-comment">→ Admin/Users 用户管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/users/:id</span> <span class="rt-comment">→ 用户详情</span><br>
+<span class="rt-route">/admin/rbac</span> <span class="rt-comment">→ RBAC 管理组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/rbac/roles</span> <span class="rt-comment">→ Admin/Roles 角色管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/rbac/permissions</span> <span class="rt-comment">→ Admin/Permissions 权限点</span><br>
+<span class="rt-route">/admin/payment</span> <span class="rt-comment">→ 支付管理组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/payment/channels</span> <span class="rt-comment">→ 支付渠道</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/payment/packages</span> <span class="rt-comment">→ 套餐管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/payment/orders</span> <span class="rt-comment">→ 订单管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/payment/refunds</span> <span class="rt-comment">→ 退款管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/payment/callbacks</span> <span class="rt-comment">→ 回调日志</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/payment/reconcile</span> <span class="rt-comment">→ 对账</span><br>
+<span class="rt-route">/admin/points</span> <span class="rt-comment">→ 积分管理组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/points/ledger</span> <span class="rt-comment">→ 积分流水</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/points/frozen</span> <span class="rt-comment">→ 冻结积分</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/points/coupons</span> <span class="rt-comment">→ 优惠券</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/points/codes</span> <span class="rt-comment">→ 兑换码</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/points/expiry</span> <span class="rt-comment">→ 过期规则</span><br>
+<span class="rt-route">/admin/ai</span> <span class="rt-comment">→ AI 平台配置组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/ai/providers</span> <span class="rt-comment">→ 供应商管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/ai/models</span> <span class="rt-comment">→ 模型管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/ai/keys</span> <span class="rt-comment">→ Key 池管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/ai/cost</span> <span class="rt-comment">→ 成本统计</span><br>
+<span class="rt-route">/admin/prompts</span> <span class="rt-comment">→ 提示词中心组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/prompts/templates</span> <span class="rt-comment">→ 提示词模板</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/prompts/templates/:id</span> <span class="rt-comment">→ 模板编辑(版本/diff/测试)</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/prompts/genres</span> <span class="rt-comment">→ 类型预设</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/prompts/styles</span> <span class="rt-comment">→ 风格预设</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/prompts/bindings</span> <span class="rt-comment">→ 节点绑定</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/prompts/optimize</span> <span class="rt-comment">→ 优化任务</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/prompts/ab-tests</span> <span class="rt-comment">→ A/B 测试</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/prompts/feedback</span> <span class="rt-comment">→ 反馈分析</span><br>
+<span class="rt-route">/admin/workflow</span> <span class="rt-comment">→ Admin/Workflow 工作流配置</span><br>
+<span class="rt-route">/admin/canvas</span> <span class="rt-comment">→ 画布管理组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/canvas/templates</span> <span class="rt-comment">→ 画布模板</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/canvas/review</span> <span class="rt-comment">→ 共享审核</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/canvas/reports</span> <span class="rt-comment">→ 举报处理</span><br>
+<span class="rt-route">/admin/content</span> <span class="rt-comment">→ 内容管理组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/content/assets</span> <span class="rt-comment">→ 素材管理</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/content/review</span> <span class="rt-comment">→ 内容审核</span><br>
+<span class="rt-route">/admin/finance</span> <span class="rt-comment">→ 财务统计组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/finance/income</span> <span class="rt-comment">→ 收入统计</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/finance/profit</span> <span class="rt-comment">→ 毛利统计</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/finance/orders</span> <span class="rt-comment">→ 订单流水</span><br>
+<span class="rt-route">/admin/system</span> <span class="rt-comment">→ 系统配置组</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/system/config</span> <span class="rt-comment">→ 系统配置</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/system/storage</span> <span class="rt-comment">→ 存储配置</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/system/sms</span> <span class="rt-comment">→ 短信邮件</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/system/audit</span> <span class="rt-comment">→ 审计日志</span><br>
+&nbsp;&nbsp;<span class="rt-route">/admin/system/seo</span> <span class="rt-comment">→ SEO 配置</span>
+</div>
+
+<!-- 6. BACKEND MODULES -->
+<h2 id="backend-modules"><span class="hn">6</span>后端模块划分</h2>
+
+<h3>6.1 Laravel 模块划分</h3>
+<table>
+<thead><tr><th>模块</th><th>职责</th><th>核心 Service / Job</th></tr></thead>
+<tbody>
+<tr><td>Auth</td><td>认证、RBAC 权限、 Sanctum Token</td><td>AuthService, RoleService, PermissionMiddleware</td></tr>
+<tr><td>User</td><td>用户 CRUD、封禁、实名、会员、邀请</td><td>UserService, MemberService, InviteService</td></tr>
+<tr><td>Wallet</td><td>钱包、积分流水、冻结/解冻/结算/退回</td><td>WalletService, PointsLedgerService, <code>PreChargePointsJob</code>, <code>SettlePointsJob</code>, <code>RefundPointsJob</code></td></tr>
+<tr><td>Payment</td><td>渠道管理、套餐、订单、回调、退款、对账</td><td>PaymentService, OrderService, RefundService, <code>PaymentCallbackJob</code>, <code>ReconcileJob</code></td></tr>
+<tr><td>Coupon</td><td>优惠券、兑换码</td><td>CouponService, RedemptionCodeService</td></tr>
+<tr><td>AIPlatform</td><td>供应商/模型/Key 池管理、加密、调度</td><td>ProviderService, ModelService, KeyPoolService, KeyScheduler, <code>CheckKeyBalanceJob</code></td></tr>
+<tr><td>AITask</td><td>任务创建、入队、回调处理、进度推送</td><td>TaskService, <code>DispatchAiTaskJob</code>, <code>AiCallbackWebhookHandler</code>, TaskProgressBroadcaster</td></tr>
+<tr><td>Project</td><td>项目 CRUD、大纲/剧本/表格/参考图/分镜/视频/合并</td><td>ProjectService, OutlineService, ScriptService, StoryboardService</td></tr>
+<tr><td>Prompt</td><td>模板/版本/绑定/类型预设/风格预设/A/B 测试/优化</td><td>PromptTemplateService, VersionService, BindingService, PromptResolver, AbTestService, OptimizationService</td></tr>
+<tr><td>Workflow</td><td>全自动工作台编排、节点依赖、失败策略</td><td>WorkflowService, WorkflowRunner, NodeExecutor</td></tr>
+<tr><td>Canvas</td><td>画布 CRUD、版本、运行、素材库、社区</td><td>CanvasService, CanvasRunner, ShareService, CommunityService</td></tr>
+<tr><td>Content</td><td>素材管理、内容审核、下架</td><td>AssetService, ContentReviewService</td></tr>
+<tr><td>Finance</td><td>收入/成本/毛利统计、对账报表</td><td>FinanceService, CostStatService</td></tr>
+<tr><td>System</td><td>系统配置、存储、短信邮件、公告</td><td>ConfigService, StorageService, SmsService, MailService</td></tr>
+<tr><td>Audit</td><td>审计日志记录与查询</td><td>AuditService (owen-it/laravel-auditing 集成)</td></tr>
+<tr><td>Notification</td><td>站内信、短信、邮件、WebSocket 推送</td><td>NotificationService, WebSocketBroadcaster (Reverb)</td></tr>
+</tbody>
+</table>
+
+<h4>Laravel 目录结构</h4>
+<pre><code>app/
+├── Http/Controllers/
+│   ├── Api/                    # 用户端 API
+│   │   ├── AuthController.php
+│   │   ├── WalletController.php
+│   │   ├── OrderController.php
+│   │   ├── ProjectController.php
+│   │   ├── CanvasController.php
+│   │   ├── PromptController.php
+│   │   ├── AiTaskController.php
+│   │   └── WebhookController.php
+│   └── Admin/                  # 后台管理 API
+│       ├── DashboardController.php
+│       ├── UserController.php
+│       ├── RoleController.php
+│       ├── PaymentController.php
+│       ├── AiPlatformController.php
+│       ├── PromptTemplateController.php
+│       ├── PromptBindingController.php
+│       ├── CanvasController.php
+│       ├── FinanceController.php
+│       └── SystemController.php
+├── Services/
+│   ├── Auth/
+│   ├── Wallet/
+│   ├── Payment/
+│   ├── AiPlatform/
+│   ├── AiTask/
+│   ├── Project/
+│   ├── Prompt/
+│   ├── Workflow/
+│   ├── Canvas/
+│   ├── Finance/
+│   └── System/
+├── Jobs/
+│   ├── DispatchAiTaskJob.php
+│   ├── PaymentCallbackJob.php
+│   ├── PreChargePointsJob.php
+│   ├── SettlePointsJob.php
+│   ├── RefundPointsJob.php
+│   ├── CheckKeyBalanceJob.php
+│   └── ReconcileJob.php
+├── Models/
+│   ├── User.php, Wallet.php, Order.php, ...
+│   ├── AiProvider.php, AiModel.php, AiKey.php, AiTask.php
+│   ├── PromptTemplate.php, PromptVersion.php, PromptBinding.php
+│   ├── Project.php, Outline.php, Script.php, Storyboard.php
+│   ├── Canvas.php, CanvasVersion.php
+│   └── ...
+├── Middleware/
+│   ├── CheckPermission.php      # RBAC 权限检查
+│   ├── Idempotency.php          # 写操作幂等
+│   └── RateLimitByRole.php     # 按角色限流
+├── Events/
+│   ├── AiTaskProgress.php
+│   ├── PointsChanged.php
+│   └── PaymentReceived.php
+└── Listeners/
+    └── BroadcastProgressToWebSocket.php
+
+routes/
+├── api.php                      # 用户端 + Webhook 路由
+├── admin.php                    # 后台管理路由
+└── channels.php                 # WebSocket 频道</code></pre>
+
+<h3 id="python-service">6.2 Python AI 微服务模块</h3>
+<table>
+<thead><tr><th>模块</th><th>职责</th></tr></thead>
+<tbody>
+<tr><td>FastAPI App</td><td>接收 Laravel 内部 API 请求、健康检查</td></tr>
+<tr><td>Celery Worker</td><td>从 Redis 拉取任务、异步执行、超时管理</td></tr>
+<tr><td>Model Adapters</td><td>各 AI 平台 API 适配器（统一接口：generate/edit/compose）</td></tr>
+<tr><td>Key Manager</td><td>从 Laravel API 获取脱敏 Key、本地缓存、轮询/故障转移</td></tr>
+<tr><td>Callback Handler</td><td>任务完成后 POST 回调 Laravel Webhook（进度/完成/失败）</td></tr>
+<tr><td>Character Consistency</td><td>角色一致性管理（参考图 + seed + 描述绑定）</td></tr>
+<tr><td>FFmpeg Processor</td><td>视频拼接、转场、字幕、混音、封面</td></tr>
+<tr><td>Content Filter</td><td>敏感词过滤、注入防护</td></tr>
+</tbody>
+</table>
+
+<h4>Python 目录结构</h4>
+<pre><code>ai_service/
+├── app/
+│   ├── main.py                  # FastAPI 入口
+│   ├── config.py                # 配置(Redis URL / Laravel API URL / 内部签名密钥)
+│   ├── celery_app.py            # Celery 实例
+│   ├── tasks.py                 # Celery 任务定义
+│   ├── callbacks.py             # Webhook 回调
+│   ├── key_manager.py           # Key 管理(从 Laravel API 获取)
+│   ├── content_filter.py        # 敏感词过滤/注入防护
+│   └── adapters/                # 多模型适配器
+│       ├── base.py              # BaseAdapter(统一接口)
+│       ├── openai_adapter.py
+│       ├── anthropic_adapter.py
+│       ├── gemini_adapter.py
+│       ├── deepseek_adapter.py
+│       ├── qwen_adapter.py      # 通义
+│       ├── doubao_adapter.py    # 豆包
+│       ├── jimeng_adapter.py    # 即梦
+│       ├── kling_adapter.py     # 可灵
+│       ├── runway_adapter.py
+│       ├── pika_adapter.py
+│       ├── luma_adapter.py
+│       ├── midjourney_adapter.py
+│       ├── sd_adapter.py        # Stable Diffusion
+│       ├── comfyui_adapter.py
+│       ├── tts_adapter.py
+│       └── ffmpeg_adapter.py    # FFmpeg 视频合成
+├── requirements.txt
+└── Dockerfile</code></pre>
+
+<h4>适配器统一接口</h4>
+<pre><code>class BaseAdapter(ABC):
+    """所有 AI 平台适配器的基类"""
+
+    @abstractmethod
+    async def generate(self, prompt: str, variables: dict, params: dict) -> dict:
+        """生成内容(文生文/文生图/文生视频)
+        Returns: {result, cost_cents, latency_ms, metadata}
+        """
+        pass
+
+    @abstractmethod
+    async def edit(self, input_data: bytes, prompt: str, params: dict) -> dict:
+        """编辑内容(图生图/inpaint/图生视频)"""
+        pass
+
+    @abstractmethod
+    async def compose(self, inputs: list, params: dict) -> dict:
+        """合成内容(视频拼接/FFmpeg)"""
+        pass</code></pre>
+
+<!-- 7. MILESTONES -->
+<h2 id="milestones"><span class="hn">7</span>开发里程碑</h2>
+
+<p>按模块依赖关系划分为 6 个阶段，每个阶段完成后可独立验收。</p>
+
+<div class="milestone">
+  <div class="milestone-marker active">M1</div>
+  <div class="milestone-content">
+    <div class="milestone-title">基础设施与认证 <span class="badge badge-p0">P0</span></div>
+    <div class="milestone-desc">
+      <ul>
+        <li>Laravel 项目初始化、Docker Compose 环境</li>
+        <li>用户注册/登录（手机号+验证码）、Sanctum Token</li>
+        <li>RBAC 角色权限（spatie）、9 种预置角色</li>
+        <li>审计日志（owen-it/laravel-auditing）</li>
+        <li>MySQL 迁移文件、Redis 配置、Horizon</li>
+        <li><strong>验收：</strong>9 种角色可登录并仅看到授权菜单，关键操作有审计日志</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="milestone">
+  <div class="milestone-marker active">M2</div>
+  <div class="milestone-content">
+    <div class="milestone-title">支付与积分系统 <span class="badge badge-p0">P0</span></div>
+    <div class="milestone-desc">
+      <ul>
+        <li>积分钱包（余额/冻结/流水）</li>
+        <li>充值套餐、订单管理</li>
+        <li>微信/支付宝/Stripe 支付接入（yansongda/pay）</li>
+        <li>支付回调验签+幂等+重试</li>
+        <li>退款流程（余额校验+幂等）</li>
+        <li>积分预扣→结算→退回机制</li>
+        <li><strong>验收：</strong>用户可充值→积分到账→消费→退款全流程跑通，回调日志可查</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="milestone">
+  <div class="milestone-marker active">M3</div>
+  <div class="milestone-content">
+    <div class="milestone-title">AI 平台配置与任务队列 <span class="badge badge-p0">P0</span></div>
+    <div class="milestone-desc">
+      <ul>
+        <li>供应商/模型/Key 池管理（AES-256 加密+脱敏）</li>
+        <li>Key 轮询/故障转移/余额监控</li>
+        <li>AI 任务创建→入队→预扣积分</li>
+        <li>Python FastAPI + Celery 微服务搭建</li>
+        <li>多模型适配器（先接 3-5 个主流平台）</li>
+        <li>Webhook 回调→状态更新→结算/退回</li>
+        <li>WebSocket（Reverb）进度推送</li>
+        <li><strong>验收：</strong>用户可创建 AI 任务→看到进度→成功结算/失败退回积分</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="milestone">
+  <div class="milestone-marker active">M4</div>
+  <div class="milestone-content">
+    <div class="milestone-title">提示词工程中心 <span class="badge badge-p0">P0</span></div>
+    <div class="milestone-desc">
+      <ul>
+        <li>提示词模板 CRUD + 版本管理 + 变量系统</li>
+        <li>类型预设（古装/都市/甜宠等）</li>
+        <li>风格预设（写实/电影感/国风等）</li>
+        <li>节点绑定（节点+类型+风格+模型+平台+比例）</li>
+        <li>项目创建时自动加载默认提示词</li>
+        <li>优先级：项目覆盖 > 个人模板 > 类型+风格绑定 > 系统默认</li>
+        <li>系统提示词锁定机制</li>
+        <li><strong>验收：</strong>创建项目时各节点自动加载提示词，用户可查看/修改/重置</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="milestone">
+  <div class="milestone-marker active">M5</div>
+  <div class="milestone-content">
+    <div class="milestone-title">全自动工作台 <span class="badge badge-p0">P0</span></div>
+    <div class="milestone-desc">
+      <ul>
+        <li>项目创建向导（3 步：基础信息→默认提示词→确认）</li>
+        <li>大纲 → 剧本 → 基础表格 → 参考图 → 分镜图 → 视频 → 合并 全流程</li>
+        <li>每节点：积分预估、进度展示、失败重试、取消、版本管理、编辑、重生成、导出</li>
+        <li>提示词查看与修改重跑</li>
+        <li>FFmpeg 视频拼接/转场/字幕/混音</li>
+        <li>评分反馈收集</li>
+        <li><strong>验收：</strong>用户可从剧名输入到最终 MP4 导出全流程跑通</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="milestone">
+  <div class="milestone-marker active">M6</div>
+  <div class="milestone-content">
+    <div class="milestone-title">画布工作台 + 社区 + 后台完善 <span class="badge badge-p1">P1</span></div>
+    <div class="milestone-desc">
+      <ul>
+        <li>画布工作台（X6/LogicFlow、节点拖拽连线、单节点/全量运行、缓存、版本）</li>
+        <li>画布共享社区（发布/审核/搜索/点赞/收藏/克隆/举报）</li>
+        <li>提示词 A/B 测试 + AI 辅助优化 + 反馈分析</li>
+        <li>优惠券与兑换码</li>
+        <li>财务对账与报表</li>
+        <li>内容审核（敏感词+图像审核 API）</li>
+        <li>深度合成标识</li>
+        <li><strong>验收：</strong>画布可编排运行，社区可发布浏览克隆，提示词可 A/B 测试</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h3>里程碑依赖关系</h3>
+<pre><code>M1 基础设施 ──► M2 支付积分 ──► M3 AI 平台 ──► M4 提示词中心 ──► M5 全自动工作台 ──► M6 画布+社区
+     │                  │                │                │                    │
+     └── 审计日志        └── 幂等+验签    └── 预扣/结算    └── 节点绑定         └── A/B 测试
+                        └── 钱包          └── Webhook 回调 └── 项目加载默认     └── 反馈分析
+                                           └── WebSocket 推送</code></pre>
+
+<!-- 8. DEPLOY -->
+<h2 id="deploy"><span class="hn">8</span>部署方案</h2>
+
+<h3>8.1 Docker Compose 编排</h3>
+<pre><code>version: '3.8'
+services:
+  nginx:
+    image: nginx:alpine
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./src/public:/var/www/html/public
+    depends_on: [app, reverb]
+
+  app:                        # PHP-FPM
+    build: ./docker/php
+    volumes:
+      - ./src:/var/www/html
+    depends_on: [mysql, redis]
+    environment:
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+
+  horizon:                    # Laravel 队列消费
+    build: ./docker/php
+    command: php artisan horizon
+    volumes: ["./src:/var/www/html"]
+    depends_on: [mysql, redis]
+
+  reverb:                     # WebSocket 服务
+    build: ./docker/php
+    command: php artisan reverb:start
+    ports: ["8080:8080"]
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ai_drama
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes: ["mysql_data:/var/lib/mysql"]
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes: ["redis_data:/data"]
+
+  fastapi:                    # Python AI 微服务
+    build: ./ai_service
+    ports: ["8000:8000"]
+    depends_on: [redis]
+    environment:
+      - REDIS_URL=redis://redis:6379/1
+      - LARAVEL_API_URL=http://app:8080/api/internal
+      - INTERNAL_SIGN_KEY=${INTERNAL_SIGN_KEY}
+
+  celery_worker:
+    build: ./ai_service
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=4
+    depends_on: [redis, fastapi]
+    environment:
+      - REDIS_URL=redis://redis:6379/1
+      - LARAVEL_API_URL=http://app:8080/api/internal
+
+  ffmpeg:                     # FFmpeg 视频处理
+    image: jrottenberg/ffmpeg:latest
+    volumes: ["./storage:/storage"]
+
+volumes:
+  mysql_data:
+  redis_data:</code></pre>
+
+<h3>8.2 Nginx 配置要点</h3>
+<pre><code># Laravel API + 前端
+location / {
+    try_files $uri $uri/ /index.php?$query_string;
+}
+
+location ~ \.php$ {
+    fastcgi_pass app:9000;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    include fastcgi_params;
+}
+
+# Python FastAPI 代理
+location /ai-service/ {
+    proxy_pass http://fastapi:8000/;
+}
+
+# WebSocket 代理
+location /ws/ {
+    proxy_pass http://reverb:8080/;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+}</code></pre>
+
+<div style="margin-top:60px;padding:24px;border-top:1px solid var(--bd);text-align:center;color:var(--txt3);font-size:12px">
+  <p>AI 短剧一站式服务平台 技术设计文档 v1.0.0 — 2026-10-10</p>
+  <p>本文档覆盖系统架构、数据库 ER+SQL、API 接口、前端路由、后端模块、开发里程碑、部署方案。产品需求详见独立 PRD 文档。</p>
+</div>
+
+</div>
+</main>
+</div>
+
+</body>
+</html>
